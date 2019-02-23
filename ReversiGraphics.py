@@ -55,7 +55,7 @@ class Window():
 			return None
 		else:
 			col = (pos[0] - PADDING_X) // (COL_WIDTH)
-			row = (pos[1] - PADDING_Y) // (COL_WIDTH) 
+			row = (pos[1] - PADDING_Y) // (COL_WIDTH)
 			return [col, row]
 
 	def mouse_coords(self):
@@ -76,7 +76,3 @@ class Window():
 					pygame.draw.circle(self.display, GREY2, cell_centre, int(COL_WIDTH*0.3))
 				if [i,j] in legals and game.turn_token()==2:
 					pygame.draw.circle(self.display, MUTE_RED, cell_centre, int(COL_WIDTH*0.3))
-
-
-
-

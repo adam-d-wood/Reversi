@@ -2,12 +2,12 @@ import random
 from math import *
 import copy
 
-def random_move(field, legals):
+def random_move(field, legals, depth=None, maximisingPlayer=None, max_token=None, alpha=None, beta=None):
 	# print(legals)
 	move = random.choice(legals)
 	move = [move[1], move[0]]
 	# print(move)
-	return move
+	return [None, move]
 
 def endcheck(field):
 	black_legals = find_legal_moves(field, 1)
@@ -30,7 +30,7 @@ def evaluate(field, max_token):
 	else:
 		return red-black
 
-def minimax(field, legals, depth, maximisingPlayer, max_token):
+def minimax(field, legals, depth, maximisingPlayer, max_token, alpha=None, beta=None):
 	# print(maximisingPlayer, depth)
 	# print(legals)
 	if depth <= 0 or endcheck(field):
@@ -46,12 +46,14 @@ def minimax(field, legals, depth, maximisingPlayer, max_token):
 			try:
 				if minmax >= value:
 					value = minmax
-					best_move = move
+					best_move = None
 			except:
 				if minmax[0] >= value:
 					value = minmax[0]
-					best_move = move
-			return [value, [best_move[1], best_move[0]]]
+					best_move = None
+			if best_move:
+				best_move = [best_move[1],best_move[0]]
+			return [value, best_move]
 		for move in legals:
 			newfield = copy.deepcopy(field)
 			newfield[move[1]][move[0]] = max_token
@@ -66,7 +68,9 @@ def minimax(field, legals, depth, maximisingPlayer, max_token):
 				if minmax[0] >= value:
 					value = minmax[0]
 					best_move = move
-		return [value, [best_move[1], best_move[0]]]
+		if best_move:
+			best_move = [best_move[1],best_move[0]]
+		return [value, best_move]
 	else: #minimising player
 		value = inf
 		best_move = [0,0]
@@ -77,12 +81,14 @@ def minimax(field, legals, depth, maximisingPlayer, max_token):
 			try:
 				if minmax <= value:
 					value = minmax
-					best_move = move
+					best_move = None
 			except:
 				if minmax[0] <= value:
 					value = minmax[0]
-					best_move = move
-			return [value, [best_move[1], best_move[0]]]
+					best_move = None
+			if best_move:
+				best_move = [best_move[1],best_move[0]] 
+			return [value, best_move]
 		for move in legals:
 			newfield = copy.deepcopy(field)
 			newfield[move[1]][move[0]] = 3-max_token
@@ -97,7 +103,97 @@ def minimax(field, legals, depth, maximisingPlayer, max_token):
 				if minmax[0] <= value:
 					value = minmax[0]
 					best_move = move
-		return [value, [best_move[1], best_move[0]]]
+		if best_move:
+			best_move = [best_move[1],best_move[0]]
+		return [value, best_move]
+
+
+def alphabeta(field, legals, depth, maximisingPlayer, max_token, alpha, beta):
+	# print(maximisingPlayer, depth)
+	# print(legals)
+	if depth <= 0 or endcheck(field):
+		# print('done')
+		return evaluate(field, max_token)
+	if maximisingPlayer:
+		best_move = [0,0]
+		value = -inf
+		if not legals:
+			print("no legals")
+			newlegals = find_legal_moves(field, 3-max_token)
+			minmax = alphabeta(field, newlegals, depth-1, False, max_token, alpha, beta)
+			try:
+				if minmax >= value:
+					value = minmax
+					best_move = None
+			except:
+				if minmax[0] >= value:
+					value = minmax[0]
+					best_move = None
+			alpha = max(alpha, value)
+			if best_move:
+				best_move = [best_move[1],best_move[0]]
+
+			return [value, best_move]
+		for move in legals:
+			newfield = copy.deepcopy(field)
+			newfield[move[1]][move[0]] = max_token
+			flip_tokens(newfield, move, max_token)
+			newlegals = find_legal_moves(newfield, 3-max_token)
+			minmax = alphabeta(newfield, newlegals, depth-1, False, max_token, alpha, beta)
+			try:
+				if minmax >= value:
+					value = minmax
+					best_move = move
+			except:
+				if minmax[0] >= value:
+					value = minmax[0]
+					best_move = move
+			alpha = max(alpha, value)
+
+			if alpha >= beta:
+				break #beta cut off
+		if best_move:
+			best_move = [best_move[1],best_move[0]]
+		return [value, best_move]
+	else: #minimising player
+		value = inf
+		best_move = [0,0]
+		if not legals:
+			# print("no legals")
+			newlegals = find_legal_moves(field, max_token)
+			minmax = alphabeta(field, newlegals, depth-1, True, max_token, alpha, beta)
+			try:
+				if minmax <= value:
+					value = minmax
+					best_move = None
+			except:
+				if minmax[0] <= value:
+					value = minmax[0]
+					best_move = None
+			beta = min(beta, value)
+			if best_move:
+				best_move = [best_move[1],best_move[0]]
+			return [value, best_move]
+		for move in legals:
+			newfield = copy.deepcopy(field)
+			newfield[move[1]][move[0]] = 3-max_token
+			flip_tokens(newfield, move, 3-max_token)
+			newlegals = find_legal_moves(newfield, max_token)
+			minmax = alphabeta(newfield, newlegals, depth-1, True, max_token, alpha, beta)
+			try:
+				if minmax <= value:
+					value = minmax
+					best_move = move
+			except:
+				if minmax[0] <= value:
+					value = minmax[0]
+					best_move = move
+			beta = min(beta, value)
+			if alpha >= beta:
+				break #alpha cut off
+		if best_move:
+			best_move = [best_move[1],best_move[0]]
+		return [value, best_move]
 
 def flip_tokens(field, cell, player):
 	directions = []
@@ -188,4 +284,3 @@ def on_board(cell):
 		if not(0<=coord<8):
 			valid = False
 	return valid
-

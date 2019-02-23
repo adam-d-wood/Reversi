@@ -3,6 +3,7 @@ import ReversiBoard as rboard
 import ReversiAIs as comps
 import copy
 import pygame
+from math import *
 
 board = rboard.Board(8, 8)
 window = graphics.Window()
@@ -15,11 +16,12 @@ class Reversi():
 		self.black_turn = True
 		self.missed_turns = 0
 		self.clock = pygame.time.Clock()
-		self.human_players = [2]
+		self.human_players = []
 		self.human_turn = False
 		# self.computer = comps.random_move
-		self.computer = comps.minimax
-		self.ai_delay = 50
+		self.black_player = comps.alphabeta
+		self.red_player = comps.random_move
+		self.ai_delay = 0
 
 	def draw(self):
 		window.draw_board(self.display, board, self)
@@ -172,9 +174,14 @@ class Reversi():
 				self.human_turn = False
 			if not self.human_turn:
 				pygame.time.delay(self.ai_delay)
-				move = self.computer(board.field, self.find_legal_moves(board), 3, True, self.turn_token())
+				if self.black_turn:
+					move = self.black_player(board.field, self.find_legal_moves(board),
+										6, True, self.turn_token(), -inf, inf)
+				else:
+					move = self.red_player(board.field, self.find_legal_moves(board),
+										6, True, self.turn_token(), -inf, inf)
 				value, tile = move
-				print(tile, value)
+				print(self.turn_token(), tile, value)
 				turn_done = self.insert_token(tile, board.field)
 				if turn_done:
 					self.flip_tokens(board.field, tile)
@@ -214,12 +221,10 @@ class Reversi():
 		black, red = self.count_tokens(board)
 		print('black: ',black)
 		print('red: ', red)
-		exit = False
-		while not exit:
-			event = pygame.event.wait()
-			if event == pygame.QUIT:
-				exit = True
-
+		f = open("black_stats.txt", "a")
+		out = str(black-red) + "\n"
+		f.write(out)
+		f.close()
 
 app = Reversi()
 app.main_loop()
