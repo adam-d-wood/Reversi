@@ -1,6 +1,7 @@
 import ReversiGraphics as graphics
 import ReversiBoard as rboard
 import ReversiAIs as comps
+import minimax2 as newcomps
 import copy
 import pygame
 from math import *
@@ -19,8 +20,8 @@ class Reversi():
 		self.human_players = []
 		self.human_turn = False
 		# self.computer = comps.random_move
-		self.black_player = comps.alphabeta
-		self.red_player = comps.random_move
+		self.black_player = newcomps.alphabeta
+		self.red_player = comps.alphabeta
 		self.ai_delay = 0
 
 	def draw(self):
@@ -175,13 +176,15 @@ class Reversi():
 			if not self.human_turn:
 				pygame.time.delay(self.ai_delay)
 				if self.black_turn:
-					move = self.black_player(board.field, self.find_legal_moves(board),
-										6, True, self.turn_token(), -inf, inf)
+					result = self.black_player(board.field, 2, -inf, inf, 1, self.turn_token())
 				else:
-					move = self.red_player(board.field, self.find_legal_moves(board),
-										6, True, self.turn_token(), -inf, inf)
-				value, tile = move
-				print(self.turn_token(), tile, value)
+					result = self.red_player(board.field, self.find_legal_moves(board),
+										2, True, self.turn_token(), -inf, inf)
+				try:
+					value, tile = result.value, result.move
+				except:
+					value, tile = result
+				# print(self.turn_token(), tile, value)
 				turn_done = self.insert_token(tile, board.field)
 				if turn_done:
 					self.flip_tokens(board.field, tile)

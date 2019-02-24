@@ -87,7 +87,7 @@ def minimax(field, legals, depth, maximisingPlayer, max_token, alpha=None, beta=
 					value = minmax[0]
 					best_move = None
 			if best_move:
-				best_move = [best_move[1],best_move[0]] 
+				best_move = [best_move[1],best_move[0]]
 			return [value, best_move]
 		for move in legals:
 			newfield = copy.deepcopy(field)
