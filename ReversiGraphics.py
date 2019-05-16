@@ -1,8 +1,8 @@
 import pygame
 from pygame.locals import *
 
-PADDING_X = 50
-PADDING_Y = 50
+PADDING_X = 100
+PADDING_Y = 100
 COL_WIDTH = 100
 ROW_HEIGHT = 100
 
@@ -33,6 +33,24 @@ class Window():
 			top[0] += COL_WIDTH
 			bottom = [top[0], top[1]+ROW_HEIGHT*board.rows]
 			pygame.draw.line(display, BLACK, top, bottom)
+
+		y_coord = PADDING_Y/2 - 10
+		x_coord = PADDING_X + 0.5*COL_WIDTH - 6
+		for i in range(board.rows):
+			labelfont = pygame.font.SysFont('Arial Black', 20)
+			out = str(chr(97+i))
+			letter = labelfont.render(out, False, BLACK)
+			self.display.blit(letter, [x_coord, y_coord])
+			x_coord += COL_WIDTH
+
+		y_coord = PADDING_Y + 0.5*ROW_HEIGHT -6
+		x_coord = PADDING_X/2 - 10
+		for i in range(board.rows):
+			labelfont = pygame.font.SysFont('Arial Black', 20)
+			out = str(i+1)
+			letter = labelfont.render(out, False, BLACK)
+			self.display.blit(letter, [x_coord, y_coord])
+			y_coord += COL_WIDTH
 
 		left = [PADDING_X, PADDING_Y]
 		for i in range(board.rows-1):
@@ -73,6 +91,6 @@ class Window():
 			for j in range(board.cols):
 				cell_centre = [int(PADDING_X + COL_WIDTH/2 + COL_WIDTH*j), int(PADDING_Y + COL_WIDTH/2 + COL_WIDTH*i)]
 				if [i,j] in legals and game.turn_token()==1:
-					pygame.draw.circle(self.display, GREY2, cell_centre, int(COL_WIDTH*0.3))
+					pygame.draw.circle(self.display, GREY2, cell_centre, int(COL_WIDTH*0.07))
 				if [i,j] in legals and game.turn_token()==2:
-					pygame.draw.circle(self.display, MUTE_RED, cell_centre, int(COL_WIDTH*0.3))
+					pygame.draw.circle(self.display, MUTE_RED, cell_centre, int(COL_WIDTH*0.07))

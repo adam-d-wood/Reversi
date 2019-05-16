@@ -1,5 +1,13 @@
 import copy
 from math import *
+import ReversiGraphics as graphics
+import ReversiBoard as rboard
+
+
+testwin = graphics.Window()
+board = rboard.Board(8, 8)
+display = testwin.setup_display(board)
+
 
 class ValuedMove():
     def __init__(self, value, move):
@@ -34,7 +42,7 @@ def endcheck(field):
 	else:
 		return False
 
-def evaluate(field, max_token):
+def evaluate_by_territory(field, max_token):
 	black, red = 0, 0
 	for i in range(len(field)):
 		for j in range(len(field[0])):
@@ -47,10 +55,26 @@ def evaluate(field, max_token):
 	else:
 		return red-black
 
-# def evaluate_2(field, max_token):
-#     discs = 
-#     EC = 500
-#     MC = 
+def evaluate_by_weight(field, max_token):
+    weightings = ([100,-5,5,5,5,5,-5,100],
+                [-5,0,0,0,0,0,0,-5],
+                [5,0,0,0,0,0,0,5],
+                [5,0,0,0,0,0,0,5],
+                [5,0,0,0,0,0,0,5],
+                [5,0,0,0,0,0,0,5],
+                [-5,0,0,0,0,0,0,-5],  
+                [100,-5,5,5,5,5,-5,100])
+    result = 0
+    for i in range(len(weightings)):
+        for j in range(len(weightings[0])):
+            if field[i][j] == 1:
+                mult = 1
+            elif field[i][j] == 2:
+                mult = -1
+            else: mult = 0
+            result += mult * weightings[i][j]
+    # print(result)
+    return result
 
 def count_frontiers(field):
     black, red = 0, 0
@@ -71,10 +95,9 @@ def count_frontiers(field):
 def evaluate_by_mobility(field, max_token):
     black_moves = len(find_legal_moves(field, 1))
     red_moves = len(find_legal_moves(field, 2))
-    if max_token == 1:
-        return black_moves - red_moves
-    else:
-        return red_moves - black_moves
+    team = 1 if max_token == 1 else 2
+    mobility = black_moves - red_moves
+    return mobility * team
 
 def mock_play(field, move, token):
     if move == None:
@@ -90,15 +113,54 @@ def evaluate_by_frontiers(field, max_token):
     elif max_token == 2:
         return count_frontiers(field)
 
+def count_frees(field):
+    free_tiles = 0
+    for i in range(len(field)):
+        for j in range(len(field[0])):
+            if field[i][j] == 0:
+                free_tiles += 1
+    return free_tiles
+
+def evaluate_2(field, max_token):
+    discs = 64 - count_frees(field)
+    EC = 500
+    MC = 350 - 2 * discs
+    # if discs < 10:
+    #     SC = 200 - discs
+    # elif discs < 20:
+    #     SC =  190-2*(discs-10)
+    # elif discs < 40:
+    #     SC = 170-5*(discs-20)
+    # elif discs < 50:
+    #     SC = 70 - 7*(discs-40)
+    # else:
+    #     SC = 0
+
+def evaluate(field, max_token, tiles_left):
+    if tiles_left > 5:
+        mc = 1 #1
+        fc = 20 #20
+        ec = 1
+        mobility = evaluate_by_mobility(field, max_token)
+        frontiers = evaluate_by_frontiers(field, max_token)
+        edges = evaluate_by_weight(field, max_token)
+        # print(mobility, frontiers, edges)
+        # print(mobility, fc*frontiers)
+        return mobility*mc + fc*frontiers + ec*edges
+    else:
+        return evaluate_by_territory(field, max_token)
+
 def inv(move):
     if move == None:
         return move
     else:
         return [move[1], move[0]]
 
-def alphabeta(field, depth, alpha, beta, colour, token):
+
+def alphabeta(field, depth, alpha, beta, colour, token, tiles_left):
+    testwin.draw_board(display, board, 0)
     if depth <= 0 or endcheck(field):
-        return ValuedMove(colour * evaluate_by_mobility(field, token), None)
+        return ValuedMove(colour * evaluate(field, token, tiles_left), None)
     value = ValuedMove(-inf, None)
     sim_token = token if colour == 1 else 3-token
     legals = find_legal_moves(field, sim_token)
@@ -108,13 +170,18 @@ def alphabeta(field, depth, alpha, beta, colour, token):
         # print(move)
         newfield = mock_play(field, move, token)
         value = max(value, ValuedMove(-alphabeta(newfield, depth-1, -beta,
-                    -alpha, -colour, token).value, inv(move)))
+                    -alpha, -colour, token, tiles_left).value, inv(move)))
         alpha = max(alpha, value.value)
         # print(alpha, beta, value)
         if alpha >= beta:
+            pass
             # print("alpha cutoff")
-            break
+            # break
     return value
+
+def order_moves(field, depth, alpha, beta, colour, token):
+    best_move = alphabeta(field, depth-1, alpha, beta, colour, token)
+
 
 def flip_tokens(field, cell, player):
 	directions = []

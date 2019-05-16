@@ -2,13 +2,10 @@ import ReversiGraphics as graphics
 import ReversiBoard as rboard
 import ReversiAIs as comps
 import minimax2 as newcomps
-import minimax4 as newnewcomps
-import minimax2a as halfway
-import negascout
+import minimax3 as newnewcomps
 import copy
 import pygame
 from math import *
-import time
 
 board = rboard.Board(8, 8)
 window = graphics.Window()
@@ -21,11 +18,11 @@ class Reversi():
 		self.black_turn = True
 		self.missed_turns = 0
 		self.clock = pygame.time.Clock()
-		self.human_players = []
+		self.human_players = [2]
 		self.human_turn = False
 		# self.computer = comps.random_move
-		self.black_player = negascout.negascout
-		self.red_player = newnewcomps.alphabeta
+		self.black_player = newnewcomps.alphabeta
+		self.red_player = comps.alphabeta
 		self.ai_delay = 0 #milliseconds
 		self.free_tiles = 60
 
@@ -41,7 +38,6 @@ class Reversi():
 			return True
 
 	def insert_token(self, cell, field):
-		print(cell)
 		col, row = cell
 		# print(self.find_legal_moves(board))
 		if [row, col] in self.find_legal_moves(board):
@@ -78,7 +74,7 @@ class Reversi():
 				for ordinate in neighbour:
 					if not(0 <= ordinate < board.cols):
 						legal = False
-				if legal:	
+				if legal:
 					legals.append(neighbour)
 		truelegals = []
 		directions = []
@@ -193,12 +189,11 @@ class Reversi():
 				self.human_turn = False
 			if not self.human_turn:
 				pygame.time.delay(self.ai_delay)
-				a = pygame.time.get_ticks()
-				print("turn", self.turn_token())
 				if self.black_turn:
-					result = self.black_player(board.field, 1, -inf, inf, 1, self.turn_token(), self.tiles_left)
+					result = self.black_player(board.field, depth, -inf, inf, 1, self.turn_token(), self.tiles_left)
 				else:
-					result = self.red_player(board.field, 2, -inf, inf, 1, self.turn_token(), self.tiles_left)
+					result = self.red_player(board.field, self.find_legal_moves(board),
+										3, True, self.turn_token(), -inf, inf)
 				try:
 					value, tile = result.value, result.move
 				except:
@@ -206,12 +201,6 @@ class Reversi():
 				# print(self.turn_token(), tile, value)
 				turn_done = self.insert_token(tile, board.field)
 				if turn_done:
-					b = pygame.time.get_ticks()
-					if self.black_turn:
-						print("time: ", b-a)
-						f = open('times1.csv', "a")
-						out = str(b-a) + "\n"
-						f.write(out)
 					self.flip_tokens(board.field, tile)
 					self.missed_turns = 0
 					self.black_turn = not(self.black_turn)
@@ -249,12 +238,11 @@ class Reversi():
 		black, red = self.count_tokens(board)
 		print('black: ',black)
 		print('red: ', red)
-		# f = open("black_stats.txt", "a")
-		# out = str(black-red) + "\n"
-		# f.write(out)
-		# f.close()
+		f = open("black_stats.txt", "a")
+		out = str(black-red) + "\n"
+		f.write(out)
+		f.close()
 		pygame.event.wait()
 
-if __name__ == "__main__":
-	app = Reversi()
-	app.main_loop()
+app = Reversi()
+app.main_loop()

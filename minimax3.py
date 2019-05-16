@@ -34,7 +34,7 @@ def endcheck(field):
 	else:
 		return False
 
-def evaluate(field, max_token):
+def evaluate_by_territory(field, max_token):
 	black, red = 0, 0
 	for i in range(len(field)):
 		for j in range(len(field[0])):
@@ -47,10 +47,26 @@ def evaluate(field, max_token):
 	else:
 		return red-black
 
-# def evaluate_2(field, max_token):
-#     discs = 
-#     EC = 500
-#     MC = 
+def evaluate_by_weight(field, max_token):
+    weightings = ([100,-5,5,5,5,5,-5,100],
+                [-5,0,0,0,0,0,0,-5],
+                [5,0,0,0,0,0,0,5],
+                [5,0,0,0,0,0,0,5],
+                [5,0,0,0,0,0,0,5],
+                [5,0,0,0,0,0,0,5],
+                [-5,0,0,0,0,0,0,-5],  
+                [100,-5,5,5,5,5,-5,100])
+    result = 0
+    for i in range(len(weightings)):
+        for j in range(len(weightings[0])):
+            if field[i][j] == 1:
+                mult = 1
+            elif field[i][j] == 2:
+                mult = -1
+            else: mult = 0
+            result += mult * weightings[i][j]
+    # print(result)
+    return result
 
 def count_frontiers(field):
     black, red = 0, 0
@@ -71,50 +87,152 @@ def count_frontiers(field):
 def evaluate_by_mobility(field, max_token):
     black_moves = len(find_legal_moves(field, 1))
     red_moves = len(find_legal_moves(field, 2))
-    if max_token == 1:
-        return black_moves - red_moves
-    else:
-        return red_moves - black_moves
+    team = 1 if max_token == 1 else 2
+    mobility = black_moves - red_moves
+    return mobility * team
 
 def mock_play(field, move, token):
     if move == None:
         return field
     newfield = copy.deepcopy(field)
-    newfield[move[1]][move[0]] = token
-    flip_tokens(newfield, move, token)
+    newfield[move[0]][move[1]] = token
+    flip_tokens(newfield, [move[1],move[0]], token)
     return(newfield)
 
 def evaluate_by_frontiers(field, max_token):
     if max_token == 1:
-        return 1/count_frontiers(field)
+        return 1/(count_frontiers(field)+1)
     elif max_token == 2:
         return count_frontiers(field)
+
+def count_frees(field):
+    free_tiles = 0
+    for i in range(len(field)):
+        for j in range(len(field[0])):
+            if field[i][j] == 0:
+                free_tiles += 1
+    return free_tiles
+
+def evaluate_2(field, max_token):
+    discs = 64 - count_frees(field)
+    EC = 500
+    MC = 350 - 2 * discs
+    # if discs < 10:
+    #     SC = 200 - discs
+    # elif discs < 20:
+    #     SC =  190-2*(discs-10)
+    # elif discs < 40:
+    #     SC = 170-5*(discs-20)
+    # elif discs < 50:
+    #     SC = 70 - 7*(discs-40)
+    # else:
+    #     SC = 0
+
+def evaluate(field, max_token, tiles_left):
+    if tiles_left > 5:
+        mc = 1 #1
+        fc = 20 #20
+        ec = 1
+        mobility = evaluate_by_mobility(field, max_token)
+        frontiers = evaluate_by_frontiers(field, max_token)
+        edges = evaluate_by_weight(field, max_token)
+        # print(mobility, frontiers, edges)
+        # print(mobility, fc*frontiers)
+        return mobility*mc + fc*frontiers + ec*edges
+    else:
+        return evaluate_by_territory(field, max_token)
 
 def inv(move):
     if move == None:
         return move
-    else:
+    else:  
         return [move[1], move[0]]
 
-def alphabeta(field, depth, alpha, beta, colour, token):
+def alphabeta(field, depth, alpha, beta, colour, token, tiles_left):
     if depth <= 0 or endcheck(field):
-        return ValuedMove(colour * evaluate_by_mobility(field, token), None)
+        return ValuedMove(colour * evaluate(field, token, tiles_left), None)
     value = ValuedMove(-inf, None)
     sim_token = token if colour == 1 else 3-token
     legals = find_legal_moves(field, sim_token)
-    if legals == []: legals.append(None)
+    # if legals == []: legals.append(None)
     # print(legals)
-    for move in legals:
+    ordered_val_legals = []
+    order_moves(field, depth-1, colour, token, tiles_left, legals,
+                                ordered_val_legals)
+    ordered_legals = deval(ordered_val_legals)
+    # print("", ordered_legals)
+    # print(legals)
+    print("legals: ", legals)
+    print("ordered_legals", ordered_legals)
+    if ordered_legals == []: ordered_legals.append(None)
+    print()
+    for move in ordered_legals:
         # print(move)
-        newfield = mock_play(field, move, token)
+        newfield = mock_play(field, move, sim_token)
+        # print(move)
+        # display_field(newfield)
         value = max(value, ValuedMove(-alphabeta(newfield, depth-1, -beta,
-                    -alpha, -colour, token).value, inv(move)))
+                    -alpha, -colour, token, tiles_left).value, inv(move)))
         alpha = max(alpha, value.value)
         # print(alpha, beta, value)
+        # print()
         if alpha >= beta:
+            # pass
             # print("alpha cutoff")
             break
     return value
+
+def order_moves(field, depth, colour, token, tiles_left, legals, ordered_legals):
+    # print(depth)
+    cont = True
+    if depth <= 0 or endcheck(field):
+        print("end")
+        return ValuedMove(colour * evaluate(field, token, tiles_left), None)
+    sim_token = token if colour == 1 else 3-token
+    for move in legals:
+        newfield = mock_play(field, move, sim_token)
+        # print(len(ordered_legals), len(legals))
+        if len(ordered_legals) < len(legals):
+            print("ya")
+            value = ValuedMove(-order_moves(newfield, depth-1, -colour, token, 
+                                tiles_left, legals, ordered_legals).value, move)
+        else: 
+            cont = False
+            value = ValuedMove(0, None)
+            # print(value)
+            print("h")
+        # print(value)
+        # print("depth: ", depth)
+        print("depth", depth)
+        if depth == 1 and cont:
+            print("yuh")
+            # print(depth)
+            insert_in_order(value, ordered_legals)
+            print(ordered_legals)
+        # print(ordered_legals, len(ordered_legals))
+        if not cont: break
+    # print('end')
+    return ValuedMove(0, None)
+
+def deval(valmoves):    
+    # print("valmoves", valmoves)
+    result = []
+    for valmove in valmoves:
+        result.append(valmove.move)
+    return result
+
+def insert_in_order(value, ordered_legals):
+    # print(value)
+    ordered_legals.append(value)
+    # print(ordered_legals)
+    ordered_legals.sort()
+    return ordered_legals.reverse()
+
+def display_field(field):
+    for i in range(len(field)):
+        print(field[i])
+    print('\n')
+
 
 def flip_tokens(field, cell, player):
 	directions = []
